@@ -19,7 +19,7 @@ app.main = {
 				// Insert beacon into table of found beacons.
 				var beacon = beaconInfo.beacons[i];
 				beacon.timeStamp = Date.now();
-				var key = beacon.uuid + ":" + beacon.major + ":" + beacon.minor;
+				var key = beacon.major + ":" + beacon.minor;
 				app.BEACONS[key] = beacon;
 			}
 		}
@@ -55,10 +55,7 @@ app.main = {
 		
 		// Update beacon list.
 		$.each(app.BEACONS, function(key, beacon)
-		{
-			console.log("key = " + key);
-			console.log("beacon = " + JSON.stringify(beacon));
-			
+		{	
 			// Only show beacons that are updated during the last 20 seconds.
 			if (beacon.timeStamp + 20000 > timeNow)
 			{
@@ -76,6 +73,8 @@ app.main = {
 				$('#found-beacons').append(element);
 			}
 		});
+		
+		app.main.updateLocation();
 	},
 	
 	onDeviceReady: function()
@@ -92,48 +91,103 @@ app.main = {
 	
 	updateLocation: function()
 	{
-		var timeNow = Date.now();
+		timeNow = Date.now();
 		
 		var nearestBeacon;
 		var secondNearestBeacon;
+		var thirdNearestBeacon;
 
 		// Update beacon list.
-		$.each(beacons, function(key, beacon)
+		$.each(app.BEACONS, function(key, beacon)
 		{
 			// Only show beacons that are updated during the last 20 seconds.
 			if (beacon.timeStamp + 20000 > timeNow)
 			{
-					beacon.distance = app.utils.getDistance(beacon)
-					if(beacon.color == undefined)
-					{
-						beacon.color = app.utils.getColor(beacon)
-					}
-					
-					//Set the closest and second closest beacons
-					if(nearestBeacon == undefined)
-					{
-						nearestBeacon = beacon;
-					}
-					else if(secondNearestBeacon == undefined)
-					{
-						secondNearestBeacon = beacon;
-					}
-					else if(nearestBeacon.distance > beacon.distance)
-					{
-						nearestBeacon = beacon;
-					}
-					else if(secondNearestBeacon.distance > beacon.distance)
-					{
-						secondNearestBeacon = beacon;
-					}
+				// Hardcode x and y values for testing
+				if(key == "12350:52257")
+				{
+					beacon.x = 5;
+					beacon.y = 0;
+				}
+				if(key == "56181:59165")
+				{
+					beacon.x = 0;
+					beacon.y = 1;
+				}
+				if(key == "41988:60931")
+				{
+					beacon.x = 2;
+					beacon.y = 4;
+				}
+				
+				// Set distance, color, and id
+				beacon.id = key;
+				//beacon.distance = app.utils.getDistance(beacon);
+				if(beacon.color == undefined)
+				{
+					beacon.color = app.utils.getColor(beacon);
+				}
+				
+				//Set the closest and second closest beacons
+				if(nearestBeacon == undefined)
+				{
+					nearestBeacon = beacon;
+				}
+				else if(beacon.distance < nearestBeacon.distance)
+				{
+					thirdNearestBeacon = secondNearestBeacon;
+					secondNearestBeacon = nearestBeacon;
+					nearestBeacon = beacon;
+				}
+				else if(secondNearestBeacon == undefined)
+				{
+					secondNearestBeacon = beacon;
+				}
+				else if(beacon.distance < secondNearestBeacon.distance)
+				{
+					thirdNearestBeacon = secondNearestBeacon;
+					secondNearestBeacon = beacon;
+				}
+				else if(thirdNearestBeacon == undefined)
+				{
+					thirdNearestBeacon = beacon;
+				}
+				else if(beacon.distance < thirdNearestBeacon.distance)
+				{
+					thirdNearestBeacon = beacon;
+				}
 			}
 		});
 		
-		this.calculateLocation(nearestBeacon, secondNearestBeacon);
+		this.calculateLocation(nearestBeacon, secondNearestBeacon, thirdNearestBeacon);
 	},
+	sqr: function(a) {
+		return Math.pow(a, 2);
+	},
+	calculateLocation: function(a, b, c){
 	
-	calculateLocation: function(nearestBeacon, secondNearestBeacon){
-		//Do our MOTHAFUCKING CALCULATIONS
+		console.log("A distance = " + a.distance + "& X = " + a.x);
+		console.log("B distance = " + b.distance + "& X = " + b.x);
+		console.log("C distance = " + c.distance);
+		
+		var xa = a.x;
+		var ya = a.y;
+		var xb = b.x;
+		var yb = b.y;
+		var xc = c.x;
+		var yc = c.y;
+		var ra = a.distance;
+		var rb = b.distance;
+		var rc = c.distance;
+	 
+		var j, k, x, y;
+
+		k = (this.sqr(xa) + this.sqr(ya) - this.sqr(xb) - this.sqr(yb) - this.sqr(ra) + this.sqr(rb)) / (2 * (ya - yb)) - (this.sqr(xa) + this.sqr(ya) - this.sqr(xc) - this.sqr(yc) - this.sqr(ra) + this.sqr(rc)) / (2 * (ya - yc));
+		j = (xc - xa) / (ya - yc) - (xb - xa) / (ya - yb);
+		x = k / j;
+		y = ((xb - xa) / (ya - yb)) * x + (this.sqr(xa) + this.sqr(ya) - this.sqr(xb) - this.sqr(yb) - this.sqr(ra) + this.sqr(rb)) / (2 * (ya - yb));
+		
+		console.log("(" + x + "," + y + ")");
 	}
 };
 
